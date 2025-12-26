@@ -246,7 +246,7 @@ async def judge_policy_generation(gold: Scenario, traj: Trajectory) -> PolicyJud
         api_key=os.getenv("JUDGE_MODEL_API_KEY"),
     )
     
-    response = await client.chat.completions.create(
+    response = await client.chat.completions.parse(
         model=os.getenv("JUDGE_MODEL_NAME"),
         messages=messages,
         response_format=PolicyJudgeResponse,
