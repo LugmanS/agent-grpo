@@ -88,27 +88,12 @@ def search_engine_query(keyword: str) -> list[SearchResult]:
     if not keyword:
         raise ValueError("No keyword provided to perform web search.")
     
-    keys = [
-        key.strip()
-        for key in os.environ["SERPER_API_KEY"].split(",")
-        if key.strip()
-    ]
-    if not keys:
-        raise ValueError("No API keys found in SERPER_API_KEY environment variable.")
-    
-    _key_cycle = itertools.cycle(keys)
-    _lock = threading.Lock()
-    
-    def get_key():
-        with _lock:
-            return next(_key_cycle)
-    
-    response = requests.request("GET", f"https://google.serper.dev/search?q={keyword}&hl=en&gl=us&apiKey={get_key()}")
+    response = requests.request("GET", f"{os.getenv("SEARCH_ENGINE_URL")}?q={keyword}&format=json")
     
     data = response.json()
-    organic_results = data.get("organic", [])
+    results = data.get("results", [])
     
-    results = [SearchResult(title=result.get("title"), snippet=result.get("snippet"), url=result.get("link")) for result in organic_results]
+    results = [SearchResult(title=result.get("title"), snippet=result.get("content"), url=result.get("url")) for result in results]
     
     return [asdict(result) for result in results]
 
