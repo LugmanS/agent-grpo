@@ -498,7 +498,7 @@ async def train(model: art.Model, scenarios: List[Scenario], validation_scenario
         for group in finished_train_groups:
             judged_groups.append(group)
 
-        if batch.step % training_config["validation_step_interval"] == 0:
+        if batch.step > 200 and batch.step % training_config["validation_step_interval"] == 0:
             print("Running validation at step", batch.step)
             validation_groups = []
             for scenario in validation_scenarios:
