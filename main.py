@@ -4,7 +4,7 @@ from art.utils import iterate_dataset
 from datasets import load_dataset
 from pydantic import BaseModel
 from dataclasses import asdict, dataclass
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 from dotenv import load_dotenv
 from typing import Any, Dict, List, Optional, Callable, Literal
 from tenacity import retry, stop_after_attempt
@@ -246,16 +246,16 @@ async def judge_policy_generation(gold: Scenario, traj: Trajectory) -> PolicyJud
         api_key=os.getenv("JUDGE_MODEL_API_KEY"),
     )
     
-    response = await client.chat.completions.parse(
+    response = await client.chat.completions.create(
         model=os.getenv("JUDGE_MODEL_NAME"),
         messages=messages,
-        response_format=PolicyJudgeResponse,
     )
     
-    content = response.choices[0].message.parsed
+    first_choice = response.choices[0]
+    raw_content = first_choice.message.content or "{}"
 
     try:
-        return content
+        return PolicyJudgeResponse.model_validate_json(raw_content)
     except Exception as e:
         return PolicyJudgeResponse(
             steps=[],
