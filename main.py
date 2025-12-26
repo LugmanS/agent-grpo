@@ -31,6 +31,7 @@ class Hop:
 
 @dataclass
 class Scenario:
+    id: str
     full_question: str
     steps: List[Hop]
     final_answer: str
