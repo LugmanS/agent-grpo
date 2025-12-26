@@ -304,6 +304,7 @@ class RewardConfig:
 
     # tool reward params
     tool_base: float = 1.0
+    no_tool_penalty: float = -1.0
 
     # final reward
     lambda_final: float = 1.0
@@ -342,7 +343,9 @@ async def compute_reward(
     breakdown["tool_calls_required"] = float(required_calls)
     breakdown["tool_calls_actual"] = float(valid_calls)
 
-    if required_calls == valid_calls:
+    if required_calls > 0 and len(traj.steps) == 0:
+        breakdown["tool_calls_reward"] = cfg.no_tool_penalty
+    elif required_calls == valid_calls:
         breakdown["tool_calls_reward"] = cfg.tool_base
     else:
         complexity_penality = cfg.tool_base / required_calls
