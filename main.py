@@ -557,9 +557,9 @@ async def main():
     train_scenarios = [Scenario(**example) for example in train_dataset]
     validation_scenarios = [Scenario(**example) for example in validation_dataset]
 
-    await rollout(model, StepScenario(step=0, scenario=train_scenarios[0]))
+    # await rollout(model, StepScenario(step=0, scenario=train_scenarios[0]))
     
-    # await train(model, train_scenarios, validation_scenarios)
+    await train(model, train_scenarios, validation_scenarios)
     
 if __name__ == "__main__":
     asyncio.run(main())
