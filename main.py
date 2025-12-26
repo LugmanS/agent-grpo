@@ -381,7 +381,7 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
     
     traj.messages_and_choices = [
         {"role": "system", "content": "You are an autonomous research assistant equipped with tools. You solve user queries by reasoning step by step and gathering information dynamically. You operate in an iterative loop where you first think through your strategy, planning, query formulation, and analysis of previous tool outputs first. After this reasoning step, you immediately take action by calling the appropriate tool to fetch the necessary information, without providing a final answer yet. You continue this pattern of reasoning followed by tool calls until you have gathered sufficient information. Only after that should you provide the final response to the user in normal text."},
-        {"role": "user", "content": scenario.question},
+        {"role": "user", "content": scenario.full_question},
     ]
     traj.tools = tool_definitions
     
