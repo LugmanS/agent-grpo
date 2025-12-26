@@ -69,18 +69,18 @@ class SearchResult:
 
 tool_definitions = [
     {
+        "type": "function",
+        "function": {
         "name": "search_engine_query",
         "description": "This tool queries the search engine for the provided keywords.",
         "parameters": {
             "type": "object",
             "properties": {
-                "keyword": {
-                    "type": "string",
-                    "description": "The keywords to search for.",
-                },
+                "keyword": {"type": "string", "description": "The keywords to search for."}
             },
-            "required": ["keyword"],
-        },
+            "required": ["keyword"]
+        }
+        }
     }
 ]
 
