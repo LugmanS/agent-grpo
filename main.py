@@ -516,7 +516,7 @@ async def train(model: art.Model, scenarios: List[Scenario], validation_scenario
 async def main():
     
     BASE_MODEL_ID = "Qwen/Qwen3-4B-Instruct-2507"
-    DATASET_ID = "lugman-madhiai/MuSiQue-Agentic-Websearch"
+    DATASET_ID = "lugman-madhiai/sampled-misique"
 
     model = art.TrainableModel(
         name="agent-001",
@@ -531,7 +531,7 @@ async def main():
     train_dataset = load_dataset(DATASET_ID, split="train")
     print(f"Train dataset contains {len(train_dataset)} total samples")
     
-    validation_dataset = load_dataset(DATASET_ID, split="validation")
+    validation_dataset = load_dataset(DATASET_ID, split="test")
     print(f"Validation dataset contains {len(validation_dataset)} total samples")
     
     train_scenarios = [Scenario(**example) for example in train_dataset]
