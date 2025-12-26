@@ -41,7 +41,7 @@ class Scenario:
         return len(self.steps)
 
 class ProjectTrajectory(art.Trajectory):
-    final_answer: str
+    final_answer: str | None = None
     
 class StepScenario(BaseModel):
     step: int
