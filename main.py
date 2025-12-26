@@ -238,7 +238,7 @@ async def judge_policy_generation(gold: Scenario, traj: Trajectory) -> PolicyJud
     judge_input["question"] = gold.full_question
     judge_input["policy_trajectory"] = [{"idx": idx, "search_query": step["tool_args"]} for idx, step in enumerate(traj.steps)]
     judge_input["ideal_trajectory"] = [{"idx": idx, "search_query": step["question"], "intermediate_answer": step["answer"]} for idx, step in enumerate(gold.steps)]
-    judge_input["gold_answer"] = gold.answer
+    judge_input["gold_answer"] = gold.final_answer
     judge_input["policy_answer"] = traj.final_answer
     
     messages = [
