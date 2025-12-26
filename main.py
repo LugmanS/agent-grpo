@@ -366,6 +366,16 @@ async def compute_reward(
 # Rollout
 # -----------------------------
 
+def to_message_dict(m):
+    if isinstance(m, dict):
+        return m
+    if hasattr(m, "message"):          # Choice
+        return m.message.model_dump()
+    if hasattr(m, "model_dump"):       # Message
+        return m.model_dump()
+    raise TypeError(type(m))
+
+
 @weave.op
 async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTrajectory:
     scenario = step_scenario.scenario
@@ -405,7 +415,12 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
          
         if not response_message.tool_calls:
             traj.final_answer = response_message.content
-            reward_formatted_traj = raw_chat_messages_to_trajectory(traj.messages_and_choices)
+            print(traj.messages_and_choices)
+            messages_dict = [
+                to_message_dict(c)
+                for c in traj.messages_and_choices
+            ]
+            reward_formatted_traj = raw_chat_messages_to_trajectory(messages_dict)
             reward = await compute_reward(scenario, reward_formatted_traj, tools_cfg, final_answer_judge)
             traj.reward = reward["total"]
             traj.log(f"Reward: {json.dumps(reward, indent=2)}")
