@@ -400,6 +400,8 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
         
         response_message = response.choices[0].message
         traj.messages_and_choices.append(response.choices[0])
+        
+        print(response_message)
          
         if not response_message.tool_calls:
             traj.final_answer = response_message.content
@@ -427,7 +429,7 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
         except Exception as e:
             print(f"Error executing tool call: {e}")
             return traj
-    
+    print(traj)
     return traj
 
 # -----------------------------
