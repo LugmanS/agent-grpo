@@ -225,9 +225,12 @@ async def judge_policy_generation(gold: Scenario, traj: Trajectory) -> PolicyJud
         { "role": "user", "content": policy_judge_base_prompt + json.dumps(judge_input, indent=2) },
     ]
     
+    with open("/home/ubuntu/web-research-grpo/.token", "r") as f:
+        api_key = f.read().strip()
+    
     client = AsyncOpenAI(
         base_url=os.getenv("JUDGE_MODEL_BASE_URL"),
-        api_key=os.getenv("JUDGE_MODEL_API_KEY"),
+        api_key=api_key,
     )
     
     response = await client.chat.completions.create(
