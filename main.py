@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Literal
 from tenacity import retry, stop_after_attempt
 from prompt import policy_judge_base_prompt
 from qdrant_client import QdrantClient
+from google import genai
 import os
 import weave
 import json
@@ -18,11 +19,13 @@ import asyncio
 
 load_dotenv()
 
-qdrant = QdrantClient(host="13.202.113.197", port=6333)
+qdrant = QdrantClient(host=os.getenv("QDRANT_HOST"), port=os.getenv("QDRANT_PORT"))
 
 openai_client = AsyncOpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
 )
+
+genai_client = genai.Client(vertexai=True, project=os.getenv("GENAI_PROJECT_ID"), location=os.getenv("GENAI_LOCATION"))
 
 # -----------------------------
 # Data models
@@ -230,25 +233,9 @@ async def judge_policy_generation(gold: Scenario, traj: Trajectory) -> PolicyJud
     judge_input["gold_answer"] = gold.final_answer
     judge_input["policy_answer"] = traj.final_answer
     
-    messages = [
-        { "role": "user", "content": policy_judge_base_prompt + json.dumps(judge_input, indent=2) },
-    ]
+    response = genai_client.models.generate_content(model=os.getenv("GENAI_MODEL_NAME"), contents=policy_judge_base_prompt + json.dumps(judge_input, indent=2))
     
-    with open("/home/ubuntu/web-research-grpo/.token", "r") as f:
-        api_key = f.read().strip()
-    
-    client = AsyncOpenAI(
-        base_url=os.getenv("JUDGE_MODEL_BASE_URL"),
-        api_key=api_key,
-    )
-    
-    response = await client.chat.completions.create(
-        model=os.getenv("JUDGE_MODEL_NAME"),
-        messages=messages,
-    )
-    
-    first_choice = response.choices[0]
-    raw_content = first_choice.message.content or "{}"
+    raw_content = response.candidates[0].content.parts[0].text
 
     try:
         return PolicyJudgeResponse.model_validate_json(raw_content)
