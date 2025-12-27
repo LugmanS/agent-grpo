@@ -415,7 +415,8 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
                 tool_name: str = tool_call.function.name
                 if tool_name == "search_documents":
                     tool_args = json.loads(tool_call.function.arguments)
-                    result = search_documents(**tool_args)
+                    result = await search_documents(**tool_args)
+                    print(f"Retrieved results from search_documents for query: {tool_args['query']}")
                     traj.messages_and_choices.append(
                         {
                             "role": "tool",
