@@ -591,8 +591,8 @@ async def main():
     DATASET_ID = "lugman-madhiai/sampled-misique"
 
     model = art.TrainableModel(
-        name="semantic-search-agent-v1",
-        project="art-grpo",
+        name="qwen3-4b-art-semantic-search",
+        project="art-grpo-v2",
         base_model=BASE_MODEL_ID,
     )
 
