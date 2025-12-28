@@ -306,7 +306,7 @@ class RewardConfig:
     r_final_correct: float = 2.0
     r_final_wrong: float = -2.0
 
-
+@weave.op
 async def compute_reward(
     item: Scenario,
     traj: Trajectory,
