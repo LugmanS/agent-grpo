@@ -11,6 +11,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_l
 from prompt import policy_judge_base_prompt
 from qdrant_client import QdrantClient
 from google import genai
+import voyageai
 import os
 import weave
 import json
@@ -24,9 +25,7 @@ load_dotenv()
 
 qdrant = QdrantClient(host=os.getenv("QDRANT_HOST"), port=os.getenv("QDRANT_PORT"))
 
-openai_client = AsyncOpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-)
+vo = voyageai.Client(api_key=os.getenv("VOYAGE_API_KEY"))
 
 genai_client = genai.Client(vertexai=True, project=os.getenv("GENAI_PROJECT_ID"), location=os.getenv("GENAI_LOCATION"))
 
@@ -87,33 +86,66 @@ tool_definitions = [
         "parameters": {
             "type": "object",
             "properties": {
-                "query": {"type": "string", "description": "A natural-language search query."}
+                "query": {"type": "string", "description": "Targetted search query."}
             },
             "required": ["query"]
-        }
+            }
         }
     }
 ]
 
-async def search_documents(query: str) -> list[SearchResult]:
+async def search_documents(query: str, scenario_id: str) -> list[dict]:
     if not query:
         raise ValueError("No query provided to perform search.")
-    
-    embedding_res = await openai_client.embeddings.create(
-        input=query,
-        model="text-embedding-3-small"
-    )
-    query_embedding = embedding_res.data[0].embedding
+    if not scenario_id:
+        raise ValueError("No scenario ID provided to perform search.")
+
+    raw_step_ids = scenario_id.split("__", 1)[1]
+    step_ids = []
+    for s in raw_step_ids.split("_"):
+        try:
+            step_ids.append(int(s))
+        except ValueError:
+            step_ids.append(s)
+
+    query_embedding = vo.embed([query], model="voyage-3-large", input_type="query").embeddings[0]
     
     if not query_embedding:
         raise ValueError("No query embedding generated.")
-    
-    hits = qdrant.query_points(collection_name="documents", query=query_embedding, limit=8, with_payload=True)
-    
-    results = [SearchResult(title=point.payload.get("title"), content=point.payload.get("content")) for point in hits.points]
+
+    hits = qdrant.query_points(
+        collection_name="documents",
+        query=query_embedding,
+        limit=10,
+        with_payload=True,
+    )
+
+    def rank_key(idx_point):
+        idx, point = idx_point
+        payload = point.payload or {}
+        supporting = payload.get("questions_supporting") or []
+
+        supported_steps = [sid for sid in step_ids if sid in supporting]
+
+        if supported_steps:
+            best_step = min(supported_steps)
+            return (0, best_step, idx)
+        else:
+            return (1, float("inf"), idx)
+
+    ranked_points = sorted(list(enumerate(hits.points)), key=rank_key)
+    top_4_points = [p for _, p in ranked_points[:4]]
+
+    results = [
+        SearchResult(
+            id=p.id,
+            title=(p.payload or {}).get("title"),
+            content=(p.payload or {}).get("content"),
+        )
+        for p in top_4_points
+    ]
     return [asdict(result) for result in results]
     
-
 tools_cfg = [
     ToolConfig(name="search_documents", args={"query": "string"}),
 ]
@@ -308,7 +340,6 @@ class RewardConfig:
     r_final_correct: float = 2.0
     r_final_wrong: float = -2.0
 
-@weave.op
 async def compute_reward(
     item: Scenario,
     traj: Trajectory,
@@ -330,6 +361,8 @@ async def compute_reward(
     breakdown["format_reward"] = cfg.format_penalty if not is_format_ok else 0
     
     judge_report = await judge_policy_generation(item, traj)
+    
+    breakdown["judge_report"] = judge_report
     
     # (2) Tool-call reward
     required_calls = item.required_tool_calls
@@ -356,7 +389,6 @@ async def compute_reward(
     is_final_correct = judge_report.final_answer.accepted
     breakdown["final_correct"] = is_final_correct
     breakdown["final_reward"] = cfg.lambda_final * (cfg.r_final_correct if is_final_correct else cfg.r_final_wrong)
-
     breakdown["total"] = breakdown["format_reward"] + breakdown["tool_calls_reward"] + breakdown["final_reward"]
     
     return breakdown
@@ -440,6 +472,7 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
             ]
             reward_formatted_traj = raw_chat_messages_to_trajectory(messages_dict)
             reward = await compute_reward(scenario, reward_formatted_traj, tools_cfg)
+            traj.metadata["reward_judge_report"] = reward["judge_report"]
             traj.reward = reward["total"]
             break
         
@@ -448,7 +481,7 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
                 tool_name: str = tool_call.function.name
                 if tool_name == "search_documents":
                     tool_args = json.loads(tool_call.function.arguments)
-                    result = await search_documents(**tool_args)
+                    result = await search_documents(**tool_args, scenario_id=scenario.id)
                     traj.messages_and_choices.append(
                         {
                             "role": "tool",
@@ -469,7 +502,7 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
 # -----------------------------
 
 training_config = {
-    "groups_per_step": 8,
+    "groups_per_step": 6,
     "num_epochs": 20,
     "rollouts_per_group": 4,
     "learning_rate": 1e-5,
