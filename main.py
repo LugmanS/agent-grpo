@@ -362,7 +362,7 @@ async def compute_reward(
     
     judge_report = await judge_policy_generation(item, traj)
     
-    breakdown["judge_report"] = judge_report
+    breakdown["judge_report"] = judge_report.model_dump(mode="json")
     
     # (2) Tool-call reward
     required_calls = item.required_tool_calls
@@ -592,7 +592,7 @@ async def main():
 
     model = art.TrainableModel(
         name="qwen3-4b-art-semantic-search",
-        project="art-grpo-v2",
+        project="art-grpo-interleaved",
         base_model=BASE_MODEL_ID,
     )
 
