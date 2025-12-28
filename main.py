@@ -138,7 +138,6 @@ async def search_documents(query: str, scenario_id: str) -> list[dict]:
 
     results = [
         SearchResult(
-            id=p.id,
             title=(p.payload or {}).get("title"),
             content=(p.payload or {}).get("content"),
         )
