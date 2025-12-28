@@ -397,7 +397,7 @@ async def rollout(model: art.Model, step_scenario: StepScenario) -> ProjectTraje
         api_key=model.inference_api_key,
     )
     
-    TIMEOUT_SECONDS = 60.0
+    TIMEOUT_SECONDS = 70.0
     MAX_RETRIES = 3
 
     for _ in range(7):
@@ -573,8 +573,6 @@ async def main():
     
     train_scenarios = [Scenario(**example) for example in train_dataset]
     validation_scenarios = [Scenario(**example) for example in validation_dataset]
-
-    # await rollout(model, StepScenario(step=0, scenario=train_scenarios[0]))
     
     await train(model, train_scenarios, validation_scenarios)
     
